@@ -7,8 +7,8 @@ model = YOLO('best.pt')
 
 def main():
     init = sl.InitParameters()
-    init.camera_resolution = sl.RESOLUTION.HD720 # Use HD720 opr HD1200 video mode, depending on camera type.
-    init.camera_fps = 60  # Set fps at 30
+    init.camera_resolution = sl.RESOLUTION.HD1080 # Use HD720 opr HD1200 video mode, depending on camera type.
+    init.camera_fps = 30  # Set fps at 30
     cam = sl.Camera()
     status = cam.open(init)
     if status != sl.ERROR_CODE.SUCCESS:
