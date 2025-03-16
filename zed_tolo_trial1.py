@@ -17,7 +17,13 @@ import cv_viewer.tracking_viewer as cv_viewer
 
 
 
-
+CLASS_NAMES = {
+    0: "Backboard",
+    1: "BasketBall",
+    2: "Basket",
+    
+    # Add more labels based on your model's training
+}
 
 lock = Lock()
 run_signal = False
@@ -54,7 +60,7 @@ def detections_to_custom_box(detections, im0):
     output = []
     for i, det in enumerate(detections):
         xywh = det.xywh[0]
-
+        print(xywh)
         # Creating ingestable objects for the ZED SDK
         obj = sl.CustomBoxObjectData()
         obj.bounding_box_2d = xywh2abcd(xywh, im0.shape)
@@ -106,11 +112,11 @@ def main():
     # Create a InitParameters object and set configuration parameters
     init_params = sl.InitParameters(input_t=input_type, svo_real_time_mode=True)
     init_params.coordinate_units = sl.UNIT.METER
-    init_params.camera_resolution = sl.RESOLUTION.HD2K # Use HD720 opr HD1200 video mode, depending on camera type.
-    init_params.camera_fps = 15  # Set fps at 30
-    init_params.depth_mode = sl.DEPTH_MODE.ULTRA  # QUALITY
+    init_params.camera_resolution = sl.RESOLUTION.HD1080 # Use HD720 opr HD1200 video mode, depending on camera type.
+    init_params.camera_fps = 30  # Set fps at 30
+    init_params.depth_mode = sl.DEPTH_MODE.QUALITY
     init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP
-    init_params.depth_maximum_distance = 20
+    init_params.depth_maximum_distance = 8
 
     runtime_params = sl.RuntimeParameters()
     status = zed.open(init_params)
@@ -151,6 +157,7 @@ def main():
     display_resolution = sl.Resolution(min(camera_res.width, 1280), min(camera_res.height, 720))
     image_scale = [display_resolution.width / camera_res.width, display_resolution.height / camera_res.height]
     image_left_ocv = np.full((display_resolution.height, display_resolution.width, 4), [245, 239, 239, 255], np.uint8)
+    # cv2.imshow("ZED | left image before track", image_left_ocv)
 
     # Utilities for tracks view
     camera_config = camera_infos.camera_configuration
@@ -167,6 +174,7 @@ def main():
             lock.acquire()
             zed.retrieve_image(image_left_tmp, sl.VIEW.LEFT)
             image_net = image_left_tmp.get_data()
+            
             lock.release()
             run_signal = True
 
@@ -187,17 +195,33 @@ def main():
             point_cloud.copy_to(point_cloud_render)
             zed.retrieve_image(image_left, sl.VIEW.LEFT, sl.MEM.CPU, display_resolution)
             zed.get_position(cam_w_pose, sl.REFERENCE_FRAME.WORLD)
+            # cv2.imshow("ZED | lef image", point_cloud.get_data())
 
+            # print(point_cloud[2])
+            # print(point_cloud.get_data())
             # 3D rendering
-            viewer.updateData(point_cloud_render, objects)
+            # viewer.updateData(point_cloud_render, objects)
             # 2D rendering
+
             np.copyto(image_left_ocv, image_left.get_data())
-            cv_viewer.render_2D(image_left_ocv, image_scale, objects, obj_param.enable_tracking)
+            # cv2.imshow("ZED | lef image", image_left_ocv)
+
+            # print(image_left_ocv)This is the line
+            dis=cv_viewer.render_2D(image_left_ocv, image_scale, objects, obj_param.enable_tracking)
+            
+            # cv2.imshow("ZED | lef image", image_left_ocv)
+            print("Distance",abs(dis*100))
+
             global_image = cv2.hconcat([image_left_ocv, image_track_ocv])
             # Tracking view
-            track_view_generator.generate_view(objects, cam_w_pose, image_track_ocv, objects.is_tracked)
+            # cv2.imshow("ZED | lef image", image_left_ocv)
+            # cv2.imshow("ZED | track image", image_track_ocv)
 
-            cv2.imshow("ZED | 2D View and Birds View", global_image)
+            track_view_generator.generate_view(objects, cam_w_pose, image_track_ocv, objects.is_tracked)
+            cv2.imshow("ZED | 2D View and Birds View", image_left_ocv)
+            # print(image_track_ocv)
+            # print(image_left_ocv)
+            sleep(0.1)
             key = cv2.waitKey(10)
             if key == 27 or key == ord('q') or key == ord('Q'):
                 exit_signal = True

@@ -31,7 +31,7 @@ def get_image_position(bounding_box_image, img_scale):
 
 def render_2D(left_display, img_scale, objects, is_tracking_on):
     overlay = left_display.copy()
-
+    dis=0
     line_thickness = 2
     for obj in objects.object_list:
         if render_object(obj, is_tracking_on):
@@ -69,12 +69,13 @@ def render_2D(left_display, img_scale, objects, is_tracking_on):
 
             # Diplay Object distance to camera as text
             if np.isfinite(obj.position[2]):
-                text = str(round(abs(obj.position[2]), 1)) + "M"
+                text = str(round(abs(obj.position[2]*100), 1)) + "CM"
                 text_position = (int(position_image[0] - 20), int(position_image[1]))
                 cv2.putText(left_display, text, text_position, cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, text_color, 1)
-
+                dis=obj.position[2]
     # Here, overlay is as the left image, but with opaque masks on each detected objects
     cv2.addWeighted(left_display, 0.7, overlay, 0.3, 0.0, left_display)
+    return dis 
 
 
 # ----------------------------------------------------------------------
